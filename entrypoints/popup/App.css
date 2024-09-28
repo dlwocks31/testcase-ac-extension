@@ -1,0 +1,43 @@
+:root {
+  --background-color: #ffffff;
+  --text-color: #213547;
+  --secondary-text-color: #555;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background-color: #242424;
+    --text-color: rgba(255, 255, 255, 0.87);
+    --secondary-text-color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+body {
+  margin: 0;
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  text-align: center;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+h1 {
+  font-size: 2.5em;
+  margin-bottom: 1rem;
+  color: var(--text-color);
+}
+
+p {
+  font-size: 1.2em;
+  color: var(--secondary-text-color);
+  max-width: 600px;
+}
