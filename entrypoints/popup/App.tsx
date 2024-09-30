@@ -8,11 +8,12 @@ interface LastChecked {
 
 function App() {
   const [lastChecked, setLastChecked] = useState<LastChecked | null>(null);
+  const [showPopup, setShowPopup] = useState(true);
 
   useEffect(() => {
     // Load initial state from storage
     chrome.storage.local.get(
-      ["lastCheckedProblemId", "lastCheckedExist"],
+      ["lastCheckedProblemId", "lastCheckedExist", "showPopup"],
       (result) => {
         if (
           result.lastCheckedProblemId &&
@@ -23,6 +24,7 @@ function App() {
             lastCheckedExist: result.lastCheckedExist,
           });
         }
+        setShowPopup(result.showPopup !== false);
       },
     );
 
@@ -44,6 +46,14 @@ function App() {
       chrome.storage.onChanged.removeListener(listener);
     };
   }, []);
+
+  const handleShowPopupChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const newValue = event.target.checked;
+    setShowPopup(newValue);
+    chrome.storage.local.set({ showPopup: newValue });
+  };
 
   const handleOpenTestcase = () => {
     if (lastChecked && lastChecked.lastCheckedExist) {
@@ -77,7 +87,7 @@ function App() {
             <>
               <p className="result-text">
                 {lastChecked.lastCheckedProblemId}번 문제는 아직 testcase.ac에
-                등록되지 않은 문제입니다.
+                추가되지 않은 문제입니다.
               </p>
               <button
                 className="open-button"
@@ -89,6 +99,16 @@ function App() {
           )}
         </div>
       )}
+      <div className="checkbox-container">
+        <label>
+          <input
+            type="checkbox"
+            checked={showPopup}
+            onChange={handleShowPopupChange}
+          />
+          반례 찾을 수 있는 문제 진입 시, 자동으로 팝업 띄우기
+        </label>
+      </div>
     </div>
   );
 }

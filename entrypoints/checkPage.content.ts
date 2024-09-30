@@ -8,18 +8,27 @@ export default defineContentScript({
     const url = new URL(window.location.href);
     let problemId: string | null = null;
 
-    // Regex for /problem/[problemId] format
+    // Existing regex patterns
     const problemRegex = /^\/problem\/(\d+)$/;
-    // Regex for /board/search/all/problem/[problemId] format
     const boardSearchRegex = /^\/board\/search\/all\/problem\/(\d+)$/;
 
-    const problemMatch = url.pathname.match(problemRegex);
-    const boardSearchMatch = url.pathname.match(boardSearchRegex);
+    // New regex patterns
+    const submitRegex = /^\/submit\/(\d+)$/;
+    const problemStatusRegex = /^\/problem\/status\/(\d+)$/;
+    const shortStatusRegex = /^\/short\/status\/(\d+)$/;
+    const problemHistoryRegex = /^\/problem\/history\/(\d+)$/;
 
-    if (problemMatch) {
-      problemId = problemMatch[1];
-    } else if (boardSearchMatch) {
-      problemId = boardSearchMatch[1];
+    // Check for matches
+    const match =
+      url.pathname.match(problemRegex) ||
+      url.pathname.match(boardSearchRegex) ||
+      url.pathname.match(submitRegex) ||
+      url.pathname.match(problemStatusRegex) ||
+      url.pathname.match(shortStatusRegex) ||
+      url.pathname.match(problemHistoryRegex);
+
+    if (match) {
+      problemId = match[1];
     }
     // Check for /status with problem_id query parameter
     else if (url.pathname === "/status" && url.searchParams.has("problem_id")) {
