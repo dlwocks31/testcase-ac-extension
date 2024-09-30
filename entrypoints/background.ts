@@ -78,3 +78,14 @@ export default defineBackground(() => {
     },
   );
 });
+
+chrome.tabs.onActivated.addListener((activeInfo) => {
+  // activeInfo contains tabId and windowId
+  console.log("Tab switched to: ", activeInfo.tabId);
+
+  chrome.tabs.get(activeInfo.tabId, (tab) => {
+    if (!tab.url || !tab.url.startsWith("https://www.acmicpc.net/")) {
+      chrome.action.setBadgeText({ text: "" });
+    }
+  });
+});
