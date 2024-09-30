@@ -34,15 +34,61 @@ const extractProblemId = (url_string: string) => {
   return problemId;
 };
 
+const extractProblemIdsFromList = (): string[] => {
+  const problemIds: string[] = [];
+  const tableElements = document.querySelectorAll("table");
+
+  tableElements.forEach((table) => {
+    const links = table.querySelectorAll('a[href^="/problem/"]');
+    links.forEach((link) => {
+      const match = link.getAttribute("href")?.match(/^\/problem\/(\d+)$/);
+      if (match) {
+        problemIds.push(match[1]);
+      }
+    });
+  });
+
+  return problemIds;
+};
+
 export default defineContentScript({
   matches: ["https://www.acmicpc.net/*"],
   runAt: "document_end",
-  main() {
+  async main() {
     console.log("Hello content.");
+    // Check if current page is a single problem page
     const problemId = extractProblemId(window.location.href);
-
     console.log({ problemId });
-
     chrome.runtime.sendMessage({ type: "enterPage", problemId });
+
+    // Check if current page is a problem list page
+    const problemIds = extractProblemIdsFromList();
+    if (problemIds.length > 0) {
+      chrome.runtime.sendMessage({ type: "problemList", problemIds });
+    }
+
+    // Listen for messages from the background script
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (message.type === "problemExists") {
+        const problemId = message.problemId;
+        const links = document.querySelectorAll(
+          `a[href="/problem/${problemId}"]`,
+        );
+        links.forEach((link) => {
+          const anchor = document.createElement("a");
+          anchor.href = `https://testcase.ac/problems/${problemId}`;
+          anchor.target = "_blank"; // Open in a new tab
+          const img = document.createElement("img");
+          img.src = chrome.runtime.getURL("icon/32.png");
+          img.style.border = "1px solid lightgrey";
+          img.style.marginRight = "2px"; // Changed from marginLeft to marginRight
+          img.style.verticalAlign = "sub";
+          img.style.width = "1.2em"; // Set width to match text size
+          img.style.height = "1.2em"; // Set height to match text size
+          anchor.appendChild(img);
+          link.parentNode?.insertBefore(anchor, link); // Changed to insert before the link
+        });
+      }
+    });
   },
 });

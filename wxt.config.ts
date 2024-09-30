@@ -6,5 +6,11 @@ export default defineConfig({
   manifest: {
     permissions: ["activeTab", "background", "storage"],
     host_permissions: ["https://testcase.ac/"],
+    web_accessible_resources: [
+      {
+        resources: ["icon/32.png"],
+        matches: ["<all_urls>"],
+      },
+    ],
   },
 });
