@@ -51,6 +51,9 @@ const extractProblemIdsFromList = (): string[] => {
   return problemIds;
 };
 
+// Define default value as a constant
+const DEFAULT_SHOW_IN_LIST = true;
+
 export default defineContentScript({
   matches: ["https://www.acmicpc.net/*"],
   runAt: "document_end",
@@ -61,11 +64,16 @@ export default defineContentScript({
     console.log({ problemId });
     chrome.runtime.sendMessage({ type: "enterPage", problemId });
 
-    // Check if current page is a problem list page
-    const problemIds = extractProblemIdsFromList();
-    if (problemIds.length > 0) {
-      chrome.runtime.sendMessage({ type: "problemList", problemIds });
-    }
+    // Check if showInList is enabled before extracting problem IDs from the list
+    chrome.storage.local.get("showInList", (result) => {
+      const showInList = result.showInList ?? DEFAULT_SHOW_IN_LIST;
+      if (showInList) {
+        const problemIds = extractProblemIdsFromList();
+        if (problemIds.length > 0) {
+          chrome.runtime.sendMessage({ type: "problemList", problemIds });
+        }
+      }
+    });
 
     // Listen for messages from the background script
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
