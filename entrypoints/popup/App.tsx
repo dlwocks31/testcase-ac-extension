@@ -66,11 +66,13 @@ function App() {
 
   return (
     <div className="app-container">
-      <p className="last-checked-label">
-        {lastChecked
-          ? `마지막으로 확인한 문제 번호: ${lastChecked.lastCheckedProblemId}`
-          : "마지막으로 확인한 문제 번호가 없습니다."}
-      </p>
+      {!lastChecked && (
+        <p className="last-checked-label">
+          마지막으로 확인한 문제 번호가 없습니다. 백준 문제 페이지 진입 시
+          자동으로 업데이트됩니다.
+        </p>
+      )}
+
       {lastChecked && (
         <div className="result-container">
           {lastChecked.lastCheckedExist ? (
