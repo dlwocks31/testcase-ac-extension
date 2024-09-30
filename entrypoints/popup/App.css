@@ -1,7 +1,13 @@
+html {
+  width: 320px;
+}
+
 :root {
   --background-color: #ffffff;
   --text-color: #213547;
   --secondary-text-color: #555;
+  --button-color: #2196f3;
+  --button-hover-color: #1976d2;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -9,6 +15,8 @@
     --background-color: #242424;
     --text-color: rgba(255, 255, 255, 0.87);
     --secondary-text-color: rgba(255, 255, 255, 0.7);
+    --button-color: #64b5f6;
+    --button-hover-color: #42a5f5;
   }
 }
 
@@ -23,21 +31,68 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  height: 100vh;
+  justify-content: flex-start;
   text-align: center;
   padding: 1rem;
   box-sizing: border-box;
 }
 
-h1 {
-  font-size: 2.5em;
-  margin-bottom: 1rem;
-  color: var(--text-color);
+.last-checked-label {
+  font-size: 0.9em;
+  margin:0;
+  color: var(--secondary-text-color);
+  width: 100%;
+}
+
+.result-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 0.5rem;
+  box-sizing: border-box; 
 }
 
 p {
-  font-size: 1.2em;
-  color: var(--secondary-text-color);
-  max-width: 600px;
+  font-size: 1em;
+  color: var(--text-color);
+  margin: 0.5rem 0;
+  word-break: keep-all;
+}
+
+.open-button {
+  background-color: var(--button-color);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  font-size: 1em;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.3s, transform 0.1s;
+  width: 100%;
+  max-width: 200px;
+  margin-top: 1rem;
+}
+
+.open-button:hover {
+  background-color: var(--button-hover-color);
+}
+
+.open-button:active {
+  transform: scale(0.98);
+}
+
+@media (prefers-color-scheme: dark) {
+  .result-container {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+}
+
+.result-text {
+  font-size: 1.1em;
+  font-weight: bold;
+  margin-bottom: 1rem;
 }
