@@ -65,6 +65,41 @@ export default defineBackground(() => {
     }
   };
 
+  const checkProblemExistsBatch = async (
+    problemIds: string[],
+  ): Promise<{ existProblemIds: string[]; notExistProblemIds: string[] }> => {
+    try {
+      const response = await fetch(
+        `https://testcase.ac/api/extension/problems?ids=${problemIds.join(
+          ",",
+        )}`,
+      );
+      if (response.status === 200) {
+        const data = await response.json();
+        return {
+          existProblemIds: Array.isArray(data.existProblemIds)
+            ? data.existProblemIds.filter(
+                (id: string) => typeof id === "string",
+              )
+            : [],
+          notExistProblemIds: Array.isArray(data.notExistProblemIds)
+            ? data.notExistProblemIds.filter(
+                (id: string) => typeof id === "string",
+              )
+            : [],
+        };
+      } else {
+        console.error(
+          `Error fetching batch problems. Status: ${response.status}`,
+        );
+        return { existProblemIds: [], notExistProblemIds: problemIds };
+      }
+    } catch (error) {
+      console.error("Error fetching batch problems:", error);
+      return { existProblemIds: [], notExistProblemIds: problemIds };
+    }
+  };
+
   chrome.runtime.onMessage.addListener(
     async (message, sender, sendResponse) => {
       console.log(`background: onMessage. message:`, message);
@@ -90,19 +125,24 @@ export default defineBackground(() => {
           },
         );
       } else if (message.type === "problemList") {
-        console.log("background: problemList message received");
+        console.log("background: problemList message received.");
         const problemIds = message.problemIds;
         const uniqueProblemIds: string[] = Array.from(new Set(problemIds));
-        for (const problemId of uniqueProblemIds) {
-          console.log("background: checking problem id", problemId);
-          const exists = await checkProblemExists(problemId);
-          const senderId = sender.tab?.id;
-          if (exists && senderId) {
-            chrome.tabs.sendMessage(senderId, {
-              type: "problemExists",
-              problemId,
-            });
-          }
+        uniqueProblemIds.sort();
+        console.log("background: uniqueProblemIds:", uniqueProblemIds);
+        const { existProblemIds } = await checkProblemExistsBatch(
+          uniqueProblemIds,
+        );
+
+        const senderId = sender.tab?.id;
+        if (senderId) {
+          console.log("background: sending problemsExist message to", senderId);
+          chrome.tabs.sendMessage(senderId, {
+            type: "problemsExist",
+            problemIds: existProblemIds,
+          });
+        } else {
+          console.error("background: senderId not found");
         }
       }
     },

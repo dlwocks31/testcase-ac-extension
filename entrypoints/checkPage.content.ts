@@ -69,24 +69,27 @@ export default defineContentScript({
 
     // Listen for messages from the background script
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      if (message.type === "problemExists") {
-        const problemId = message.problemId;
-        const links = document.querySelectorAll(
-          `a[href="/problem/${problemId}"]`,
-        );
-        links.forEach((link) => {
-          const anchor = document.createElement("a");
-          anchor.href = `https://testcase.ac/problems/${problemId}`;
-          anchor.target = "_blank"; // Open in a new tab
-          const img = document.createElement("img");
-          img.src = chrome.runtime.getURL("icon/32.png");
-          img.style.border = "1px solid lightgrey";
-          img.style.marginRight = "2px"; // Changed from marginLeft to marginRight
-          img.style.verticalAlign = "sub";
-          img.style.width = "1.2em"; // Set width to match text size
-          img.style.height = "1.2em"; // Set height to match text size
-          anchor.appendChild(img);
-          link.parentNode?.insertBefore(anchor, link); // Changed to insert before the link
+      if (message.type === "problemsExist") {
+        const existingProblemIds: string[] = message.problemIds;
+
+        existingProblemIds.forEach((problemId) => {
+          const links = document.querySelectorAll(
+            `a[href="/problem/${problemId}"]`,
+          );
+          links.forEach((link) => {
+            const anchor = document.createElement("a");
+            anchor.href = `https://testcase.ac/problems/${problemId}`;
+            anchor.target = "_blank";
+            const img = document.createElement("img");
+            img.src = chrome.runtime.getURL("icon/32.png");
+            img.style.border = "1px solid lightgrey";
+            img.style.marginRight = "2px";
+            img.style.verticalAlign = "sub";
+            img.style.width = "1.2em";
+            img.style.height = "1.2em";
+            anchor.appendChild(img);
+            link.parentNode?.insertBefore(anchor, link);
+          });
         });
       }
     });
