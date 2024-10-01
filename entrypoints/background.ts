@@ -16,7 +16,7 @@ export default defineBackground(() => {
       return;
     }
     chrome.storage.local.get(["showPopup"], (result) => {
-      if (result.showPopup !== false || result.showPopup === undefined) {
+      if (result.showPopup === true) {
         console.log("before openPopup");
         chrome.action.openPopup();
         console.log("after openPopup");

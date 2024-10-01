@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import "./App.css";
 
 // Define default values as constants
-const DEFAULT_SHOW_POPUP = true;
+const DEFAULT_SHOW_POPUP = false;
 const DEFAULT_SHOW_IN_LIST = true;
 
 interface LastChecked {
@@ -131,16 +131,6 @@ function App() {
       {showSettings && (
         <div>
           <div className="settings-container">
-            <div className="checkbox-container">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={showPopup}
-                  onChange={handleShowPopupChange}
-                />
-                반례 찾을 수 있는 문제 진입 시, 자동으로 팝업 띄우기
-              </label>
-            </div>
             <div className="checkbox-container" style={{ marginTop: "2px" }}>
               <label>
                 <input
@@ -149,6 +139,16 @@ function App() {
                   onChange={handleShowInListChange}
                 />
                 반례 찾을 수 있는 문제를 목록에서 표시하기
+              </label>
+            </div>
+            <div className="checkbox-container">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={showPopup}
+                  onChange={handleShowPopupChange}
+                />
+                반례 찾을 수 있는 문제 진입 시, 자동으로 팝업 띄우기
               </label>
             </div>
           </div>
