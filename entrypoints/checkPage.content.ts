@@ -51,53 +51,62 @@ const extractProblemIdsFromList = (): string[] => {
   return problemIds;
 };
 
-// Define default value as a constant
-const DEFAULT_SHOW_IN_LIST = true;
+const addImageLinkToLeft = (element: Element, problemId: string) => {
+  const anchor = document.createElement("a");
+  anchor.href = `https://testcase.ac/problems/${problemId}`;
+  anchor.target = "_blank";
+  anchor.style.marginRight = "1px";
+  anchor.onclick = () => {
+    console.log("img clicked");
+  };
+  const img = document.createElement("img");
+  img.src = chrome.runtime.getURL("icon/32.png");
+  img.style.border = "1px solid lightgrey";
+  img.style.marginRight = "2px";
+  img.style.verticalAlign = "sub";
+  img.style.width = "1.2em";
+  img.style.height = "1.2em";
+
+  anchor.appendChild(img);
+  element.parentNode?.insertBefore(anchor, element);
+};
 
 export default defineContentScript({
   matches: ["https://www.acmicpc.net/*"],
   runAt: "document_end",
   async main() {
     console.log("Hello content.");
-    // Check if current page is a single problem page
-    const problemId = extractProblemId(window.location.href);
-    console.log({ problemId });
-    chrome.runtime.sendMessage({ type: "enterPage", problemId });
+    const currentProblemId = extractProblemId(window.location.href);
+    console.log({ currentProblemId });
 
-    // Check if showInList is enabled before extracting problem IDs from the list
-    chrome.storage.local.get("showInList", (result) => {
-      const showInList = result.showInList ?? DEFAULT_SHOW_IN_LIST;
-      if (showInList) {
-        const problemIds = extractProblemIdsFromList();
-        if (problemIds.length > 0) {
-          chrome.runtime.sendMessage({ type: "problemList", problemIds });
-        }
-      }
+    const problemIds = extractProblemIdsFromList();
+    chrome.runtime.sendMessage({
+      type: "pageLoaded",
+      problemIds,
+      currentProblemId,
     });
 
     // Listen for messages from the background script
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.type === "problemsExist") {
+        console.log("received problemsExist", message.problemIds);
         const existingProblemIds: string[] = message.problemIds;
 
         existingProblemIds.forEach((problemId) => {
           const links = document.querySelectorAll(
-            `a[href="/problem/${problemId}"]`,
+            `td > a[href="/problem/${problemId}"]`,
           );
           links.forEach((link) => {
-            const anchor = document.createElement("a");
-            anchor.href = `https://testcase.ac/problems/${problemId}`;
-            anchor.target = "_blank";
-            const img = document.createElement("img");
-            img.src = chrome.runtime.getURL("icon/32.png");
-            img.style.border = "1px solid lightgrey";
-            img.style.marginRight = "2px";
-            img.style.verticalAlign = "sub";
-            img.style.width = "1.2em";
-            img.style.height = "1.2em";
-            anchor.appendChild(img);
-            link.parentNode?.insertBefore(anchor, link);
+            addImageLinkToLeft(link, problemId);
           });
+
+          const problemTitle = document.querySelector("#problem_title");
+          if (problemTitle) {
+            console.log("problemTitle", problemTitle);
+            addImageLinkToLeft(problemTitle, problemId);
+          } else {
+            console.log("problemTitle not found");
+          }
         });
       }
     });

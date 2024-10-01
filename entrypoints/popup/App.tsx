@@ -13,13 +13,12 @@ interface LastChecked {
 function App() {
   const [lastChecked, setLastChecked] = useState<LastChecked | null>(null);
   const [showPopup, setShowPopup] = useState(DEFAULT_SHOW_POPUP);
-  const [showInList, setShowInList] = useState(DEFAULT_SHOW_IN_LIST);
   const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     // Load initial state from storage
     chrome.storage.local.get(
-      ["lastCheckedProblemId", "lastCheckedExist", "showPopup", "showInList"],
+      ["lastCheckedProblemId", "lastCheckedExist", "showPopup"],
       (result) => {
         if (
           result.lastCheckedProblemId &&
@@ -31,7 +30,6 @@ function App() {
           });
         }
         setShowPopup(result.showPopup ?? DEFAULT_SHOW_POPUP);
-        setShowInList(result.showInList ?? DEFAULT_SHOW_IN_LIST);
       },
     );
 
@@ -60,14 +58,6 @@ function App() {
     const newValue = event.target.checked;
     setShowPopup(newValue);
     chrome.storage.local.set({ showPopup: newValue });
-  };
-
-  const handleShowInListChange = (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const newValue = event.target.checked;
-    setShowInList(newValue);
-    chrome.storage.local.set({ showInList: newValue });
   };
 
   const handleOpenTestcase = () => {
@@ -131,16 +121,6 @@ function App() {
       {showSettings && (
         <div>
           <div className="settings-container">
-            <div className="checkbox-container" style={{ marginTop: "2px" }}>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={showInList}
-                  onChange={handleShowInListChange}
-                />
-                반례 찾을 수 있는 문제를 목록에서 표시하기
-              </label>
-            </div>
             <div className="checkbox-container">
               <label>
                 <input

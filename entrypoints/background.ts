@@ -1,6 +1,7 @@
 export default defineBackground(() => {
   console.log("Hello background!", { id: browser.runtime.id });
 
+  // 현재 testcase.ac에 등록된 문제에 들어옴이 감지됐을 때 호출하는 함수
   const markFound = (problemId: string, previouslySeen?: boolean) => {
     console.log("background: markFound");
     console.log(`testcase.ac page exists! ${problemId}`);
@@ -24,6 +25,7 @@ export default defineBackground(() => {
     });
   };
 
+  // testcase.ac에 등록되지 않은 문제에 들어옴이 감지됐을 때 호출하는 함수
   const markNotFound = (problemId: string) => {
     console.log("background: markNotFound");
     console.log(`testcase.ac page does not exist! ${problemId}`);
@@ -34,37 +36,7 @@ export default defineBackground(() => {
     });
   };
 
-  const performFetchAndUpdateState = (problemId: string) => {
-    fetch(`https://testcase.ac/api/extension/problems?id=${problemId}`)
-      .then((response) => {
-        console.log(response);
-        if (response.status === 200) {
-          markFound(problemId);
-        } else {
-          console.log(
-            `testcase.ac page does not exist! ${problemId}. status: ${response.status}`,
-          );
-          markNotFound(problemId);
-        }
-      })
-      .catch((error) => {
-        console.error("Error fetching testcase.ac page:", error);
-        chrome.action.setBadgeText({ text: "" });
-      });
-  };
-
-  const checkProblemExists = async (problemId: string): Promise<boolean> => {
-    try {
-      const response = await fetch(
-        `https://testcase.ac/api/extension/problems?id=${problemId}`,
-      );
-      return response.status === 200;
-    } catch (error) {
-      console.error("Error fetching testcase.ac page:", error);
-      return false;
-    }
-  };
-
+  // 문제 번호 목록을 받아서, testcase.ac에 등록되어 있는지까지만 확인하고 결과 반환
   const checkProblemExistsBatch = async (
     problemIds: string[],
   ): Promise<{ existProblemIds: string[]; notExistProblemIds: string[] }> => {
@@ -103,37 +75,32 @@ export default defineBackground(() => {
   chrome.runtime.onMessage.addListener(
     async (message, sender, sendResponse) => {
       console.log(`background: onMessage. message:`, message);
-      if (message.type === "enterPage") {
-        const problemId = message.problemId;
-        if (!problemId) {
+      if (message.type === "pageLoaded") {
+        const { currentProblemId, problemIds } = message;
+        if (!currentProblemId) {
+          // 지금 들어온 페이지는 한 문제를 다루는 페이지가 아님.
+          // 뱃지 일단 업데이트
           chrome.action.setBadgeText({ text: "" });
-          return;
         }
-        chrome.storage.local.get(
-          ["lastCheckedProblemId", "lastCheckedExist"],
-          (result) => {
-            if (result.lastCheckedProblemId === problemId) {
-              console.log("background: same problem id");
-              if (result.lastCheckedExist) {
-                markFound(problemId, true);
-              } else {
-                markNotFound(problemId);
-              }
-              return;
-            }
-            performFetchAndUpdateState(problemId);
-          },
-        );
-      } else if (message.type === "problemList") {
-        console.log("background: problemList message received.");
-        const problemIds = message.problemIds;
-        const uniqueProblemIds: string[] = Array.from(new Set(problemIds));
-        uniqueProblemIds.sort();
-        console.log("background: uniqueProblemIds:", uniqueProblemIds);
+
+        // 네트워크 쿼리로 있는 문제 가져옴
+        const queryList = [currentProblemId, ...problemIds];
+        const uniqueQueryList = Array.from(new Set(queryList));
+        uniqueQueryList.sort();
         const { existProblemIds } = await checkProblemExistsBatch(
-          uniqueProblemIds,
+          uniqueQueryList,
         );
 
+        // 현재 페이지가 한 문제를 다루는 페이지일 때, 이에 맞게 뱃지 업데이트 등 진행
+        if (currentProblemId) {
+          if (existProblemIds.includes(currentProblemId)) {
+            markFound(currentProblemId);
+          } else {
+            markNotFound(currentProblemId);
+          }
+        }
+
+        // 백준 페이지에서 리스트, 제목 등에 로고 업데이트하도록 메세지 전송
         const senderId = sender.tab?.id;
         if (senderId) {
           console.log("background: sending problemsExist message to", senderId);
@@ -150,9 +117,9 @@ export default defineBackground(() => {
 
   chrome.tabs.onActivated.addListener((activeInfo) => {
     // activeInfo contains tabId and windowId
-    console.log("Tab switched to: ", activeInfo.tabId);
 
     chrome.tabs.get(activeInfo.tabId, (tab) => {
+      console.log(`Tab switched to: ${activeInfo.tabId}, url: ${tab.url}`);
       if (!tab.url || !tab.url.startsWith("https://www.acmicpc.net/")) {
         chrome.action.setBadgeText({ text: "" });
       }
