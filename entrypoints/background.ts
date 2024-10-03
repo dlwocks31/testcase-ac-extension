@@ -41,24 +41,25 @@ export default defineBackground(() => {
     problemIds: string[],
   ): Promise<{ existProblemIds: string[]; notExistProblemIds: string[] }> => {
     try {
+      console.log("background: checkProblemExistsBatch: start request");
       const response = await fetch(
-        `https://testcase.ac/api/extension/problems?ids=${problemIds.join(
-          ",",
-        )}`,
+        `https://testcase.ac/api/extension/problems`,
+      ); // This is cached with next.js
+      console.log(
+        "background: checkProblemExistsBatch: response age is",
+        response.headers.get("Age"),
       );
       if (response.status === 200) {
         const data = await response.json();
+        const existProblemIds = data.existProblemIds as string[];
+
         return {
-          existProblemIds: Array.isArray(data.existProblemIds)
-            ? data.existProblemIds.filter(
-                (id: string) => typeof id === "string",
-              )
-            : [],
-          notExistProblemIds: Array.isArray(data.notExistProblemIds)
-            ? data.notExistProblemIds.filter(
-                (id: string) => typeof id === "string",
-              )
-            : [],
+          existProblemIds: problemIds.filter((id) =>
+            existProblemIds.includes(id),
+          ),
+          notExistProblemIds: problemIds.filter(
+            (id) => !existProblemIds.includes(id),
+          ),
         };
       } else {
         console.error(
