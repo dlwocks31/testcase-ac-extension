@@ -36,8 +36,9 @@ const extractProblemId = (url_string: string) => {
 
 const extractProblemIdsFromList = (): string[] => {
   const problemIds: string[] = [];
-  const tableElements = document.querySelectorAll("table");
 
+  // Extract from tables
+  const tableElements = document.querySelectorAll("table");
   tableElements.forEach((table) => {
     const links = table.querySelectorAll('a[href^="/problem/"]');
     links.forEach((link) => {
@@ -47,6 +48,17 @@ const extractProblemIdsFromList = (): string[] => {
       }
     });
   });
+
+  // Extract from page header (assuming only one per page)
+  const headerLink = document.querySelector(
+    'div.page-header a[href^="/problem/"]',
+  );
+  if (headerLink) {
+    const match = headerLink.getAttribute("href")?.match(/^\/problem\/(\d+)$/);
+    if (match) {
+      problemIds.push(match[1]);
+    }
+  }
 
   return problemIds;
 };
@@ -75,31 +87,45 @@ export default defineContentScript({
   matches: ["https://www.acmicpc.net/*"],
   runAt: "document_end",
   async main() {
+    // When a user visits a page, the content script starts.
     console.log("Hello content.");
     const currentProblemId = extractProblemId(window.location.href);
     console.log({ currentProblemId });
 
     const problemIds = extractProblemIdsFromList();
+
+    // Report all the ids currently found to background script.
+    // Then, background script can determine which problem actually exists.
     chrome.runtime.sendMessage({
       type: "pageLoaded",
       problemIds,
       currentProblemId,
     });
 
-    // Listen for messages from the background script
+    // Listen for messages from the background script, which reports problem exsit
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.type === "problemsExist") {
         console.log("received problemsExist", message.problemIds);
         const existingProblemIds: string[] = message.problemIds;
 
         existingProblemIds.forEach((problemId) => {
-          const links = document.querySelectorAll(
+          // Add images to table links
+          const tableLinks = document.querySelectorAll(
             `td > a[href="/problem/${problemId}"]`,
           );
-          links.forEach((link) => {
+          tableLinks.forEach((link) => {
             addImageLinkToLeft(link, problemId);
           });
 
+          // Add image to page header link (in /board/view/[id])
+          const headerLink = document.querySelector(
+            `div.page-header a[href="/problem/${problemId}"]`,
+          );
+          if (headerLink) {
+            addImageLinkToLeft(headerLink, problemId);
+          }
+
+          // Add image to problem title, if it exists
           const problemTitle = document.querySelector("#problem_title");
           if (problemTitle) {
             console.log("problemTitle", problemTitle);
