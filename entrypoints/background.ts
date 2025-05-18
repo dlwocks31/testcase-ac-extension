@@ -1,6 +1,13 @@
 export default defineBackground(() => {
   console.log("Hello background!", { id: browser.runtime.id });
 
+  // API 요청 캐시
+  let problemsCache: {
+    timestamp: number;
+    data: string[];
+  } | null = null;
+  const CACHE_TTL = 60 * 1000; // 1 minute
+
   // 현재 testcase.ac에 등록된 문제에 들어옴이 감지됐을 때 호출하는 함수
   const markFound = (problemId: string, previouslySeen?: boolean) => {
     console.log("background: markFound");
@@ -36,39 +43,69 @@ export default defineBackground(() => {
     });
   };
 
-  // 문제 번호 목록을 받아서, testcase.ac에 등록되어 있는지까지만 확인하고 결과 반환
-  const checkProblemExistsBatch = async (
-    problemIds: string[],
-  ): Promise<{ existProblemIds: string[]; notExistProblemIds: string[] }> => {
+  // 캐시를 확인하고, 필요하면 API를 호출하여 existProblemIds 배열을 가져옴
+  const getExistProblemIdsCached = async (): Promise<string[]> => {
+    // 캐시 조회
+    const now = Date.now();
+    if (problemsCache && now - problemsCache.timestamp < CACHE_TTL) {
+      console.log(
+        "background: getExistProblemIdsCached: using cached response. cached at ",
+        problemsCache.timestamp,
+        ", now is",
+        now,
+      );
+      return problemsCache.data;
+    }
+
+    console.log("background: getExistProblemIdsCached: start request");
     try {
-      console.log("background: checkProblemExistsBatch: start request");
       const response = await fetch(
         `https://testcase.ac/api/extension/problems`,
       ); // This is cached with next.js
       console.log(
-        "background: checkProblemExistsBatch: response age is",
+        "background: getExistProblemIdsCached: response age is",
         response.headers.get("Age"),
       );
       if (response.status === 200) {
         const data = await response.json();
         const existProblemIds = data.existProblemIds as string[];
 
-        return {
-          existProblemIds: problemIds.filter((id) =>
-            existProblemIds.includes(id),
-          ),
-          notExistProblemIds: problemIds.filter(
-            (id) => !existProblemIds.includes(id),
-          ),
+        // Update the cache
+        problemsCache = {
+          timestamp: now,
+          data: existProblemIds,
         };
+
+        return existProblemIds;
       } else {
         console.error(
           `Error fetching batch problems. Status: ${response.status}`,
         );
-        return { existProblemIds: [], notExistProblemIds: problemIds };
+        return [];
       }
     } catch (error) {
       console.error("Error fetching batch problems:", error);
+      return [];
+    }
+  };
+
+  // 문제 번호 목록을 받아서, testcase.ac에 등록되어 있는지까지만 확인하고 결과 반환
+  const checkProblemExistsBatch = async (
+    problemIds: string[],
+  ): Promise<{ existProblemIds: string[]; notExistProblemIds: string[] }> => {
+    try {
+      const existProblemIds = await getExistProblemIdsCached();
+
+      return {
+        existProblemIds: problemIds.filter((id) =>
+          existProblemIds.includes(id),
+        ),
+        notExistProblemIds: problemIds.filter(
+          (id) => !existProblemIds.includes(id),
+        ),
+      };
+    } catch (error) {
+      console.error("Error in checkProblemExistsBatch:", error);
       return { existProblemIds: [], notExistProblemIds: problemIds };
     }
   };
